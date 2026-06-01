@@ -1,0 +1,22 @@
+# Build output
+build/
+*.exe
+*.lib
+*.obj
+*.pdb
+*.ilk
+*.exp
+
+# Qt autogen
+*_autogen/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.pro.user*
+
+# OS
+Desktop.ini
+Thumbs.db
+.DS_Store
