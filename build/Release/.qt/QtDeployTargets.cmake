@@ -1,0 +1,6 @@
+set(__QT_DEPLOY_TARGET_CampusAutoLogin_FILE D:/My Application/Auto_login/build/Release/CampusAutoLogin.exe)
+set(__QT_DEPLOY_TARGET_CampusAutoLogin_RUNTIME_DLLS C:/Qt/6.7.0/msvc2022_64/bin/Qt6Network.dll;C:/Qt/6.7.0/msvc2022_64/bin/Qt6Widgets.dll;C:/Qt/6.7.0/msvc2022_64/bin/Qt6Gui.dll;C:/Qt/6.7.0/msvc2022_64/bin/Qt6Core.dll)
+set(__QT_DEPLOY_TARGET_test_ip_detector_FILE D:/My Application/Auto_login/build/Release/test_ip_detector.exe)
+set(__QT_DEPLOY_TARGET_test_ip_detector_RUNTIME_DLLS C:/Qt/6.7.0/msvc2022_64/bin/Qt6Test.dll;C:/Qt/6.7.0/msvc2022_64/bin/Qt6Network.dll;C:/Qt/6.7.0/msvc2022_64/bin/Qt6Core.dll)
+set(__QT_DEPLOY_TARGET_test_login_manager_FILE D:/My Application/Auto_login/build/Release/test_login_manager.exe)
+set(__QT_DEPLOY_TARGET_test_login_manager_RUNTIME_DLLS C:/Qt/6.7.0/msvc2022_64/bin/Qt6Test.dll;C:/Qt/6.7.0/msvc2022_64/bin/Qt6Network.dll;C:/Qt/6.7.0/msvc2022_64/bin/Qt6Core.dll)

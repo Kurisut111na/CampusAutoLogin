@@ -1,0 +1,14 @@
+D:/My Application/Auto_login/build/Release/CMakeFiles/core.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/CampusAutoLogin.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/test_ip_detector.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/test_login_manager.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/edit_cache.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/rebuild_cache.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/core_autogen_timestamp_deps.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/core_autogen.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/CampusAutoLogin_autogen_timestamp_deps.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/CampusAutoLogin_autogen.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/test_ip_detector_autogen_timestamp_deps.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/test_ip_detector_autogen.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/test_login_manager_autogen_timestamp_deps.dir
+D:/My Application/Auto_login/build/Release/CMakeFiles/test_login_manager_autogen.dir

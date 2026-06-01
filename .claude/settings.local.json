@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xxd \"C:/Users/79489/AppData/Local/CampusAutoLogin/CampusAutoLogin/aes_key.dat\")",
+      "Bash(cmake --version)",
+      "Bash(rm -rf \"D:/My Application/Auto_login/build/Release\")",
+      "Bash(cmake -S . -B build/Release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=\"C:/Qt/6.7.0/msvc2022_64\")",
+      "Bash(cmd.exe /c \"cd /d \\\\\"D:\\\\\\\\My Application\\\\\\\\Auto_login\\\\\" && call \\\\\"C:\\\\\\\\Program Files \\(x86\\)\\\\\\\\Microsoft Visual Studio\\\\\\\\18\\\\\\\\BuildTools\\\\\\\\VC\\\\\\\\Auxiliary\\\\\\\\Build\\\\\\\\vcvars64.bat\\\\\" >nul 2>&1 && cmake -S . -B build/Release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=\\\\\"C:/Qt/6.7.0/msvc2022_64\\\\\" 2>&1\")",
+      "Bash(cat)",
+      "Bash(cmd.exe /c \"C:\\\\tmp\\\\build_autologin.bat\")",
+      "Bash(powershell.exe)",
+      "Bash(cmd.exe *)",
+      "Bash(cmake --build build/Release --config Release)",
+      "Bash(start *)",
+      "Bash(grep -rn \"include.*crypto\" src/ tests/)",
+      "Bash(grep -rn \"include.*config_manager\" src/ tests/)",
+      "Bash(grep -rn \"m_sessionPassword\" src/)",
+      "Bash(cmd /c _build_msvc.bat)",
+      "Bash(which cmake *)",
+      "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/18/BuildTools/VC/Auxiliary/Build/**)",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\18\\\\BuildTools\\\\VC\\\\Auxiliary\\\\Build\\\\vcvars64.bat'; cmake -S . -B build/Release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=C:/Qt/6.7.0/msvc2022_64; cmake --build build/Release --config Release\")",
+      "Bash(powershell.exe -NoProfile -Command \"cmd.exe /c '_build_msvc.bat'\")",
+      "Bash(powershell.exe -NoProfile -Command \"Start-Process cmd.exe -ArgumentList '/c', 'D:\\\\My Application\\\\Auto_login\\\\_build_msvc.bat' -Wait -NoNewWindow\")",
+      "Bash(printf '@echo off\\\\r\\\\ncall \"C:\\\\\\\\Program Files \\(x86\\)\\\\\\\\Microsoft Visual Studio\\\\\\\\18\\\\\\\\BuildTools\\\\\\\\VC\\\\\\\\Auxiliary\\\\\\\\Build\\\\\\\\vcvars64.bat\"\\\\r\\\\ncd /d \"D:\\\\\\\\My Application\\\\\\\\Auto_login\"\\\\r\\\\ncmake --build build\\\\\\\\Release --config Release\\\\r\\\\n' > /tmp/build_temp.bat && cmd.exe /c \"C:\\\\Users\\\\79489\\\\AppData\\\\Local\\\\Temp\\\\build_temp.bat\" 2>&1)",
+      "Bash(taskkill /f /im CampusAutoLogin.exe)",
+      "Bash(ls -la \"C:/Users/79489/AppData/Local/CampusAutoLogin/logs/\" 2>/dev/null || echo \"No log dir found\")",
+      "Read(//c/Users/79489/AppData/Local/CampusAutoLogin/**)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
+    ]
+  }
+}
