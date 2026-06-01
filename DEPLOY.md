@@ -129,7 +129,7 @@ Auto_login/
 │   ├── main.cpp
 │   ├── core/             (核心模块)
 │   │   ├── logger        (日志系统)
-│   │   ├── crypto_utils  (AES+DPAPI加密)
+│   │   ├── crypto_utils  (DPAPI加密)
 │   │   ├── ip_detector   (IP/网卡检测)
 │   │   ├── config_manager(配置管理)
 │   │   ├── login_manager (登录/登出)

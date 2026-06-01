@@ -1,7 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xxd \"C:/Users/79489/AppData/Local/CampusAutoLogin/CampusAutoLogin/aes_key.dat\")",
       "Bash(cmake --version)",
       "Bash(rm -rf \"D:/My Application/Auto_login/build/Release\")",
       "Bash(cmake -S . -B build/Release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=\"C:/Qt/6.7.0/msvc2022_64\")",

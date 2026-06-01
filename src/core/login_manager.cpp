@@ -1,8 +1,6 @@
 #include "login_manager.h"
 #include "logger.h"
 
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QNetworkRequest>
 
 LoginManager::LoginManager(QObject* parent)

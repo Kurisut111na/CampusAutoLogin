@@ -2,7 +2,6 @@
 #include "crypto_utils.h"
 #include "logger.h"
 
-#include <QCoreApplication>
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>

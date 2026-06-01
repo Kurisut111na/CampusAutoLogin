@@ -1,12 +1,8 @@
 #include "tray_icon.h"
 #include "logger.h"
 
-#include <QApplication>
-#include <QStyle>
 #include <QPainter>
 #include <QPixmap>
-#include <QDesktopServices>
-#include <QUrl>
 
 static QIcon createColoredIcon(const QColor& color)
 {

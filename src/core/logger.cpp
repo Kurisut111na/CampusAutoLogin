@@ -1,6 +1,5 @@
 #include "logger.h"
 
-#include <QCoreApplication>
 #include <QStandardPaths>
 #include <QDir>
 #include <QFileInfo>
