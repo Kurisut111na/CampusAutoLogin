@@ -18,7 +18,7 @@ Write-Host ""
 
 if (-not (Test-Path $ExePath)) {
     Write-Error "Executable not found: $ExePath"
-    Write-Host "  Run .\scripts\build.ps1 first." -ForegroundColor Yellow
+    Write-Host "  Run _build_msvc.bat first." -ForegroundColor Yellow
     exit 1
 }
 
