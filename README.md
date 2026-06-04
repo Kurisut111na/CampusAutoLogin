@@ -39,7 +39,7 @@
 | 渠道 | 链接 | 提取码 |
 |------|------|--------|
 | **GitHub Releases** | [Releases](../../releases) | — |
-| **蓝奏云**（国内高速） | [wyqlanzou.lanzouu.com/ifi9x3r4xs5g](https://wyqlanzou.lanzouu.com/ifi9x3r4xs5g) | `5d3d` |
+| **蓝奏云**（国内高速） | [kurisut1na.lanzouu.com/ifi9x3r4xs5g](https://kurisut1na.lanzouu.com/ifi9x3r4xs5g) | `5d3d` |
 
 下载 `CampusAutoLogin.exe`，放到任意目录，双击运行。
 
