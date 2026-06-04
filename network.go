@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
+	"time"
 )
 
 // NetworkInfo holds detected network information.
@@ -130,6 +131,18 @@ func ProbeGateway() string {
 		}
 	}
 	return ""
+}
+
+// CheckConnectivity tests internet reachability via TCP dial to Bing.
+func CheckConnectivity() bool {
+	for _, addr := range []string{"www.bing.com:80", "www.bing.com:443"} {
+		conn, err := net.DialTimeout("tcp", addr, 1500*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			return true
+		}
+	}
+	return false
 }
 
 // FlushDNS flushes the Windows DNS cache.

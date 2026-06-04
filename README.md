@@ -34,9 +34,14 @@
 
 ---
 
-## 📥 安装
+## 📥 下载
 
-从 [Releases](../../releases) 下载 `CampusAutoLogin.exe`，放到任意目录，双击运行。
+| 渠道 | 链接 | 提取码 |
+|------|------|--------|
+| **GitHub Releases** | [Releases](../../releases) | — |
+| **蓝奏云**（国内高速） | [wyqlanzou.lanzouu.com/ifi9x3r4xs5g](https://wyqlanzou.lanzouu.com/ifi9x3r4xs5g) | `5d3d` |
+
+下载 `CampusAutoLogin.exe`，放到任意目录，双击运行。
 
 > **无需安装。** 不写系统目录，不装驱动，不需要管理员权限。
 
@@ -171,7 +176,7 @@ go build -o CampusAutoLogin.exe .
 
 ## 📄 开源协议
 
-MIT © [Your Name]
+MIT © Kurisut111na
 
 ---
 

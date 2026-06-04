@@ -89,6 +89,9 @@ func (hb *Heartbeat) Start() {
 
 	go hb.loop()
 
+	// Do an immediate first check instead of waiting for the first tick
+	go hb.check()
+
 	GetLogger().Info("Heartbeat started (interval: %v)", hb.interval)
 }
 
@@ -217,6 +220,11 @@ func (hb *Heartbeat) onSuccess() {
 		hb.state = HeartbeatRunning
 		hb.retryCount = 0
 		hb.retryDelay = 0
+
+		// Notify connection restored
+		if hb.onConnected != nil {
+			go hb.onConnected()
+		}
 
 		if wasOffline && hb.onReconnect != nil {
 			GetLogger().Info("Heartbeat: connection restored")

@@ -277,7 +277,12 @@ func (mw *MainWindow) buildUI() error {
 	statusGroup.SetLayout(statGrid)
 
 	mw.statusLabel = mw.addStatusField(statusGroup, statGrid, "登录状态:", "未登录", 0)
-	mw.connectionLabel = mw.addStatusField(statusGroup, statGrid, "网络连接:", "检测中...", 1)
+
+	connStatus := "未连接"
+	if ip, err := GetLocalIP(); err == nil && ip != "" {
+		connStatus = "已连接"
+	}
+	mw.connectionLabel = mw.addStatusField(statusGroup, statGrid, "网络连接:", connStatus, 1)
 	mw.ipLabel = mw.addStatusField(statusGroup, statGrid, "本地 IP:", "---", 2)
 	mw.gatewayLabel = mw.addStatusField(statusGroup, statGrid, "网关地址:", "---", 3)
 	mw.lastLoginLabel = mw.addStatusField(statusGroup, statGrid, "上次登录:", "---", 4)
@@ -375,6 +380,16 @@ func (mw *MainWindow) buildUI() error {
 		return err
 	}
 	clearLogBtn.SetText("清空日志")
+
+	// GitHub link (bottom of log panel, unobtrusive)
+	githubLink, err := walk.NewLinkLabel(logGroup)
+	if err != nil {
+		return err
+	}
+	githubLink.SetText(`<a>GitHub 开源 · 代码可审查</a>`)
+	githubLink.LinkActivated().Attach(func(link *walk.LinkLabelLink) {
+		openBrowser("https://github.com/Kurisut111na/CampusAutoLogin")
+	})
 
 	// --- Wire up events ---
 	mw.showPasswordBtn.Clicked().Attach(mw.onTogglePassword)
@@ -486,13 +501,14 @@ func (mw *MainWindow) saveConfigFromUI() {
 }
 
 func (mw *MainWindow) updateStatusDisplay() {
-	// Fast: get local IP (doesn't block)
 	netInfo := GetNetworkInfoFast()
 
 	if netInfo.LocalIP != "" {
 		mw.ipLabel.SetText(netInfo.LocalIP)
+		mw.connectionLabel.SetText("已连接")
 	} else {
 		mw.ipLabel.SetText("未获取")
+		mw.connectionLabel.SetText("未连接")
 	}
 
 	gateway := mw.cfg.CustomGateway
@@ -502,7 +518,6 @@ func (mw *MainWindow) updateStatusDisplay() {
 		mw.gatewayLabel.SetText("探测中...")
 	}
 
-	// Slow: probe gateway asynchronously to avoid blocking UI startup
 	go func() {
 		gw := ProbeGateway()
 		mw.Synchronize(func() {
@@ -512,6 +527,15 @@ func (mw *MainWindow) updateStatusDisplay() {
 				mw.gatewayLabel.SetText("未检测到")
 			}
 		})
+	}()
+
+	// Refine with real TCP reachability check (Bing)
+	go func() {
+		if CheckConnectivity() {
+			mw.Synchronize(func() { mw.connectionLabel.SetText("已连接") })
+		} else {
+			mw.Synchronize(func() { mw.connectionLabel.SetText("未连接") })
+		}
 	}()
 }
 
@@ -572,20 +596,30 @@ func (mw *MainWindow) onReconnectClicked() {
 
 func (mw *MainWindow) onRefreshIP() {
 	mw.updateStatusDisplay()
-	netInfo := GetNetworkInfo()
-	if netInfo.LocalIP != "" {
-		mw.appendLog(LogInfo, fmt.Sprintf("IP refreshed: %s", netInfo.LocalIP))
-	}
+	// Log message asynchronously to avoid blocking UI
+	go func() {
+		netInfo := GetNetworkInfo()
+		mw.Synchronize(func() {
+			if netInfo.LocalIP != "" {
+				mw.appendLog(LogInfo, fmt.Sprintf("IP refreshed: %s", netInfo.LocalIP))
+			}
+		})
+	}()
 }
 
 func (mw *MainWindow) onRefreshNetwork() {
-	netInfo := GetNetworkInfo()
 	mw.updateStatusDisplay()
-	if netInfo.Gateway != "" {
-		mw.appendLog(LogInfo, fmt.Sprintf("Gateway detected: %s (%s)", netInfo.Gateway, netInfo.NetType))
-	} else {
-		mw.appendLog(LogWarning, "Gateway not detected — network may be down")
-	}
+	// Log message asynchronously to avoid blocking UI
+	go func() {
+		netInfo := GetNetworkInfo()
+		mw.Synchronize(func() {
+			if netInfo.Gateway != "" {
+				mw.appendLog(LogInfo, fmt.Sprintf("Gateway detected: %s (%s)", netInfo.Gateway, netInfo.NetType))
+			} else {
+				mw.appendLog(LogWarning, "Gateway not detected — network may be down")
+			}
+		})
+	}()
 }
 
 func (mw *MainWindow) onAdvancedSettings() {
@@ -633,6 +667,7 @@ func (mw *MainWindow) onLogFilterChanged() {
 
 func (mw *MainWindow) onLoginSuccess(engine string) {
 	mw.statusLabel.SetText(fmt.Sprintf("已登录 (%s)", engine))
+	mw.connectionLabel.SetText("已连接")
 	mw.lastLoginLabel.SetText(time.Now().Format("2006-01-02 15:04:05"))
 	mw.appendLog(LogInfo, fmt.Sprintf("Login successful via %s", engine))
 
