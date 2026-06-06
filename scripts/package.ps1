@@ -9,7 +9,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $BuildDir = Join-Path $ProjectRoot "build\$BuildType"
 $ExePath = Join-Path $BuildDir "CampusAutoLogin.exe"
-$PackageDir = Join-Path $ProjectRoot "build\Campus-AutoLogin-v1.0.0"
+$PackageDir = Join-Path $ProjectRoot "build\Campus-AutoLogin-v0.1.1"
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host " Campus-AutoLogin Package Script" -ForegroundColor Cyan
@@ -90,7 +90,7 @@ $totalSize = (Get-ChildItem $PackageDir -Recurse | Measure-Object -Property Leng
 Write-Host "  Total size: $([math]::Round($totalSize / 1MB, 1)) MB" -ForegroundColor Gray
 
 if (-not $NoCompress) {
-    $zipPath = Join-Path $ProjectRoot "build\Campus-AutoLogin-v1.0.0.zip"
+    $zipPath = Join-Path $ProjectRoot "build\Campus-AutoLogin-v0.1.1.zip"
     Write-Host ""
     Write-Host ">>> Creating zip archive..." -ForegroundColor Cyan
     if (Test-Path $zipPath) { Remove-Item $zipPath -Force }

@@ -25,13 +25,13 @@ import (
 //
 //	{
 //	  "latest":       "1.3.0",
-//	  "min":          "1.0.0",
+//	  "min":          "0.1.0",
 //	  "download":     "https://your-lanzou-link",
 //	  "release_note": "修复断线重连bug"
 //	}
 
 // AppVersion is the current version — bump this every release.
-const AppVersion = "1.0.0"
+const AppVersion = "0.1.1"
 
 // VersionCheckURL is the raw GitHub URL for the version manifest.
 // TODO: replace with your actual repo URL.
