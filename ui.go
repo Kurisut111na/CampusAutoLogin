@@ -184,7 +184,7 @@ func (mw *MainWindow) buildUI() error {
 	if err != nil {
 		return err
 	}
-	mw.operatorCombo.SetModel([]string{"中国移动", "中国联通", "中国电信"})
+	mw.operatorCombo.SetModel([]string{"中国移动", "中国联通", "中国电信", "校园网"})
 	mw.operatorCombo.SetCurrentIndex(0)
 	mw.operatorCombo.SetMinMaxSize(walk.Size{Width: 140, Height: 24}, walk.Size{Width: 200, Height: 24})
 	accGrid.SetRange(mw.operatorCombo, walk.Rectangle{X: 1, Y: 2, Width: 1, Height: 1})
@@ -448,6 +448,8 @@ func (mw *MainWindow) loadConfigToUI() {
 		opIndex = 1
 	case "telecom":
 		opIndex = 2
+	case "campus":
+		opIndex = 3
 	}
 	mw.operatorCombo.SetCurrentIndex(opIndex)
 
@@ -479,6 +481,8 @@ func (mw *MainWindow) saveConfigFromUI() {
 		mw.cfg.Operator = "unicom"
 	case 2:
 		mw.cfg.Operator = "telecom"
+	case 3:
+		mw.cfg.Operator = "campus"
 	}
 
 	if mw.cfg.RememberPassword {
@@ -566,7 +570,7 @@ func (mw *MainWindow) onLoginClicked() {
 	go func() {
 		gateway := mw.getGateway()
 		netInfo := GetNetworkInfoFast()
-		result := mw.loginMgr.Login(gateway, username, operator, password, netInfo.LocalIP, netInfo.MAC)
+		result := mw.loginMgr.Login(gateway, username, operator, password, netInfo.LocalIP, netInfo.MAC, netInfo.IPv6)
 		mw.Synchronize(func() {
 			mw.setLoginEnabled(true)
 			if result.Success {

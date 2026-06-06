@@ -12,6 +12,7 @@ import (
 // NetworkInfo holds detected network information.
 type NetworkInfo struct {
 	LocalIP string
+	IPv6    string // IPv6 address, or empty if none
 	MAC     string // uppercase, no separators, e.g. "AABBCCDDEEFF"
 	Gateway string
 	NetType string // "wired" or "wireless" or "unknown"
@@ -79,6 +80,35 @@ func GetMAC() (string, error) {
 	return "", fmt.Errorf("no MAC address found")
 }
 
+// GetIPv6 returns the primary global unicast IPv6 address, or empty string if none.
+func GetIPv6() string {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+	for _, iface := range interfaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if !ok || ipNet.IP.To4() != nil || ipNet.IP.IsLoopback() {
+				continue
+			}
+			// Only return global unicast addresses (2000::/3), skip link-local (fe80::)
+			ip := ipNet.IP
+			if ip.IsGlobalUnicast() && !ip.IsPrivate() {
+				return ip.String()
+			}
+		}
+	}
+	return ""
+}
+
 // GetNetworkInfo collects all network information.
 func GetNetworkInfo() *NetworkInfo {
 	info := GetNetworkInfoFast()
@@ -101,6 +131,11 @@ func GetNetworkInfoFast() *NetworkInfo {
 	ip, err := GetLocalIP()
 	if err == nil {
 		info.LocalIP = ip
+	}
+
+	ipv6 := GetIPv6()
+	if ipv6 != "" {
+		info.IPv6 = ipv6
 	}
 
 	mac, err := GetMAC()

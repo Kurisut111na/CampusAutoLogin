@@ -20,6 +20,7 @@ var Carriers = map[string]string{
 	"cmcc":    "@cmcc",
 	"unicom":  "@unicom",
 	"telecom": "@telecom",
+	"campus":  "", // campus network uses no carrier suffix
 }
 
 // CarrierNames maps operator codes to display names.
@@ -27,6 +28,7 @@ var CarrierNames = map[string]string{
 	"cmcc":    "中国移动",
 	"unicom":  "中国联通",
 	"telecom": "中国电信",
+	"campus":  "校园网",
 }
 
 // OperatorToSuffix converts an operator code to the Dr.COM suffix.
@@ -232,19 +234,32 @@ func (lm *LoginManager) portalV4Login(gateway, username, operator, password, ip,
 }
 
 // oldAPILogin tries the legacy Dr.COM login API (wired, port 80).
-func (lm *LoginManager) oldAPILogin(gateway, username, operator, password, ip string) *LoginResult {
+func (lm *LoginManager) oldAPILogin(gateway, username, operator, password, ip, v6ip string) *LoginResult {
 	account := fmt.Sprintf("%s%s", username, OperatorToSuffix(operator))
+
+	// Campus network uses R6=0 + terminal_type=1; carriers use R6=1 + terminal_type=2
+	r6 := "1"
+	termType := "2"
+	if operator == "campus" {
+		r6 = "0"
+		termType = "1"
+	}
 
 	url := fmt.Sprintf(
 		"http://%s:80/drcom/login?callback=dr1004"+
 			"&DDDDD=%s"+
 			"&upass=%s"+
 			"&0MKKey=123456"+
-			"&R1=0&R2=&R3=0&R6=1&para=00"+
+			"&R1=0&R2=&R3=0&R6=%s&para=00"+
 			"&v4ip=%s"+
-			"&terminal_type=2&lang=zh-cn&jsVersion=4.2&v=608",
-		gateway, account, password, ip,
+			"&terminal_type=%s&lang=zh-cn&jsVersion=4.2&v=608",
+		gateway, account, password, r6, ip, termType,
 	)
+
+	// Append v6ip for campus network
+	if operator == "campus" && v6ip != "" {
+		url += "&v6ip=" + v6ip
+	}
 
 	GetLogger().Info("Old API login attempt: %s", gateway)
 	GetLogger().Debug("Old API URL: %s", url)
@@ -284,7 +299,7 @@ func (lm *LoginManager) oldAPILogin(gateway, username, operator, password, ip st
 // 1. Fetch AC info from Portal page
 // 2. Try Portal v4.0 (WiFi, port 801)
 // 3. Fall back to old API (wired, port 80)
-func (lm *LoginManager) Login(gateway, username, operator, password, localIP, localMAC string) *LoginResult {
+func (lm *LoginManager) Login(gateway, username, operator, password, localIP, localMAC, v6ip string) *LoginResult {
 	if localIP == "" {
 		return &LoginResult{Success: false, Message: "No active network interface found"}
 	}
@@ -302,7 +317,7 @@ func (lm *LoginManager) Login(gateway, username, operator, password, localIP, lo
 
 	// Step 3: Fall back to old API (for wired connections)
 	GetLogger().Info("Falling back to old API login")
-	result = lm.oldAPILogin(gateway, username, operator, password, localIP)
+	result = lm.oldAPILogin(gateway, username, operator, password, localIP, v6ip)
 	if result.Success {
 		return result
 	}
