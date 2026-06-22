@@ -112,13 +112,6 @@ func (hb *Heartbeat) Stop() {
 	GetLogger().Info("Heartbeat stopped")
 }
 
-// IsConnected returns whether the network is currently considered connected.
-func (hb *Heartbeat) IsConnected() bool {
-	hb.mu.Lock()
-	defer hb.mu.Unlock()
-	return hb.isOnline
-}
-
 // SetInterval changes the check interval (only takes effect after next tick).
 func (hb *Heartbeat) SetInterval(seconds int) {
 	hb.mu.Lock()
@@ -153,21 +146,6 @@ func (hb *Heartbeat) OnLost(fn func()) { hb.onLost = fn }
 
 // OnReconnectRequested sets the callback for when a reconnect should be triggered.
 func (hb *Heartbeat) OnReconnectRequested(fn func()) { hb.onReconnect = fn }
-
-// ForceReconnect triggers an immediate reconnect sequence.
-func (hb *Heartbeat) ForceReconnect() {
-	hb.mu.Lock()
-	hb.running = false
-	if hb.ticker != nil {
-		hb.ticker.Stop()
-	}
-	hb.state = HeartbeatRetrying
-	hb.retryCount = 0
-	hb.mu.Unlock()
-
-	GetLogger().Info("Force reconnect triggered")
-	hb.startRetrySequence()
-}
 
 func (hb *Heartbeat) loop() {
 	for {

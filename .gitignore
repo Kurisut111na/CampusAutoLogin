@@ -1,28 +1,16 @@
 # Build output
-build/
-*.lib
-*.obj
-*.pdb
-*.ilk
-*.exp
-
-# Qt autogen
-*_autogen/
-
-# IDE
-.vs/
-.vscode/
-*.user
-*.pro.user*
-
-# Build output
 *.exe
 *.exe~
+*.syso~
 
 # Temp files
 *.png
 *.jpg
 *.tmp
+
+# IDE
+.vs/
+.vscode/
 
 # Claude
 .claude/

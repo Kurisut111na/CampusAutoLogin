@@ -14,7 +14,7 @@ import (
 	"github.com/lxn/walk"
 )
 
-//go:embed donate-qr.png
+//go:embed donate-qr.jpg
 var qrCodePNG []byte
 
 // =============================================================================

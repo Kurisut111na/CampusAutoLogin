@@ -334,7 +334,7 @@ func renderIconBMP(size, ss int, r, g, b byte) []byte {
 	outerR := float64(size/2-1) * float64(ss)   // outer edge (leave 1px margin)
 	borderR := outerR - float64(ss)*1.6          // border ring inner edge (~1.6 px thick)
 
-	// Pre-render sup ersampled buffer: each pixel is {r, g, b, a} premultiplied
+	// Pre-render supersampled buffer: each pixel is {r, g, b, a} premultiplied
 	type pixel struct{ r, g, b, a float64 }
 	ssBuf := make([]pixel, renderW*renderH)
 

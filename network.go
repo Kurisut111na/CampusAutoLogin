@@ -201,12 +201,3 @@ func FlushARP() error {
 	}
 	return nil
 }
-
-// ClearChromeDNS clears Chrome's internal DNS cache via its net-internals API.
-func ClearChromeDNS() error {
-	// Chrome's internal DNS can be cleared by requesting chrome://net-internals/#dns
-	// This is a no-op from outside Chrome; the button label in the original app
-	// suggests this is a user-manual action. We just log it.
-	GetLogger().Info("Chrome DNS cache clear requested (manual action for user)")
-	return nil
-}

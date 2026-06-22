@@ -27,11 +27,6 @@ type dataBlob struct {
 	pbData *byte
 }
 
-type cryptIntegerBlob struct {
-	cbData uint32
-	pbData *byte
-}
-
 func dpapiProtect(plaintext []byte) ([]byte, error) {
 	var inBlob dataBlob
 	inBlob.cbData = uint32(len(plaintext))
@@ -162,8 +157,6 @@ func NewConfigManager() (*ConfigManager, error) {
 	}, nil
 }
 
-// ConfigFilePath returns the full path to the config file.
-func (cm *ConfigManager) ConfigFilePath() string { return cm.configFile }
 
 // loadRaw reads the raw JSON config from disk (passwords still encrypted).
 func (cm *ConfigManager) loadRaw() (*AppConfig, error) {

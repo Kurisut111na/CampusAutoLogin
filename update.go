@@ -31,10 +31,9 @@ import (
 //	}
 
 // AppVersion is the current version — bump this every release.
-const AppVersion = "0.1.1"
+const AppVersion = "0.1.2"
 
 // VersionCheckURL is the raw GitHub URL for the version manifest.
-// TODO: replace with your actual repo URL.
 const VersionCheckURL = "https://raw.githubusercontent.com/Kurisut111na/CampusAutoLogin/main/version.json"
 
 type versionManifest struct {

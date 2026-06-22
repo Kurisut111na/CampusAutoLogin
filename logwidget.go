@@ -90,15 +90,6 @@ func (lv *LogView) SetEntries(entries []LogEntry) {
 	lv.Invalidate()
 }
 
-// GetAllEntries returns a copy of all log entries.
-func (lv *LogView) GetAllEntries() []LogEntry {
-	lv.mu.Lock()
-	defer lv.mu.Unlock()
-	result := make([]LogEntry, len(lv.entries))
-	copy(result, lv.entries)
-	return result
-}
-
 // =============================================================================
 // Painting
 // =============================================================================
