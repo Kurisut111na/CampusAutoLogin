@@ -67,6 +67,7 @@ type MainWindow struct {
 	passwordVisible     bool
 	reconnectOnCooldown bool
 	loading             bool
+	loginRetryCount     int // retry counter for login-with-verify loop (max 2)
 
 	// --- Timers ---
 	reconnectCooldown *time.Timer
@@ -549,6 +550,7 @@ func (mw *MainWindow) updateStatusDisplay() {
 
 func (mw *MainWindow) onLoginClicked() {
 	mw.saveConfigFromUI()
+	mw.loginRetryCount = 0 // reset retry counter on manual login
 
 	username := mw.usernameEdit.Text()
 	password := mw.passwordEdit.Text()
@@ -574,7 +576,7 @@ func (mw *MainWindow) onLoginClicked() {
 		mw.Synchronize(func() {
 			mw.setLoginEnabled(true)
 			if result.Success {
-				mw.onLoginSuccess(result.Engine)
+				mw.onLoginSuccess(result.Engine, result.AlreadyOnline)
 			} else {
 				mw.onLoginFailed(result.Engine, result.Message)
 			}
@@ -669,31 +671,98 @@ func (mw *MainWindow) onLogFilterChanged() {
 // Login Result Handlers
 // =============================================================================
 
-func (mw *MainWindow) onLoginSuccess(engine string) {
-	mw.statusLabel.SetText(fmt.Sprintf("已登录 (%s)", engine))
-	mw.connectionLabel.SetText("已连接")
-	mw.lastLoginLabel.SetText(time.Now().Format("2006-01-02 15:04:05"))
-	mw.appendLog(LogInfo, fmt.Sprintf("Login successful via %s", engine))
-
-	mw.tray.SetLoggedIn(true)
-	mw.tray.SetConnectionStatus(true)
-	mw.tray.SetVisible(true)
-	mw.tray.ShowBalloon("校园网登录成功", fmt.Sprintf("已通过 %s 完成认证，可以上网了", engine))
-
-	// Start heartbeat
-	if mw.cfg.HeartbeatEnabled {
-		mw.heartbeat.SetInterval(mw.cfg.HeartbeatInterval)
-		mw.heartbeat.Start()
+func (mw *MainWindow) onLoginSuccess(engine string, alreadyOnline bool) {
+	GetLogger().Info("=== Post-login verification started (new code path) ===")
+	if alreadyOnline {
+		mw.statusLabel.SetText("服务器返回已在线，正在验证网络连通性...")
+		mw.appendLog(LogInfo, fmt.Sprintf("Server reports already online (%s), verifying internet access...", engine))
+	} else {
+		mw.statusLabel.SetText("登录成功，正在验证网络连通性...")
+		mw.appendLog(LogInfo, fmt.Sprintf("Login successful via %s, verifying internet access...", engine))
 	}
 
-	// Start DNS warmup
-	mw.startWarmup()
+	// Async verify real internet connectivity
+	go func() {
+		if CheckInternetAccess() {
+			// Real internet confirmed — finalize success
+			mw.Synchronize(func() {
+				mw.loginRetryCount = 0 // reset retry counter
+				mw.statusLabel.SetText(fmt.Sprintf("已登录 (%s)", engine))
+				mw.connectionLabel.SetText("已连接")
+				mw.lastLoginLabel.SetText(time.Now().Format("2006-01-02 15:04:05"))
 
-	// Save config
-	mw.saveConfigFromUI()
+				mw.tray.SetLoggedIn(true)
+				mw.tray.SetConnectionStatus(true)
+				mw.tray.SetVisible(true)
+				mw.tray.ShowBalloon("校园网登录成功", fmt.Sprintf("已通过 %s 完成认证，可以上网了", engine))
+
+				// Start heartbeat
+				if mw.cfg.HeartbeatEnabled {
+					mw.heartbeat.SetInterval(mw.cfg.HeartbeatInterval)
+					mw.heartbeat.Start()
+				}
+
+				// Start DNS warmup
+				mw.startWarmup()
+
+				// Save config
+				mw.saveConfigFromUI()
+			})
+			return
+		}
+
+		// Server said success but NO real internet access
+		mw.Synchronize(func() {
+			mw.loginRetryCount++
+			if mw.loginRetryCount <= 2 {
+				if alreadyOnline {
+					mw.appendLog(LogWarning, "Already online but no internet — zombie session detected, logging out before retry...")
+				} else {
+					mw.appendLog(LogWarning, fmt.Sprintf("Login reported success but no internet — retrying (%d/2)...", mw.loginRetryCount))
+				}
+			} else {
+				mw.loginRetryCount = 0 // reset
+				mw.appendLog(LogError, "Login retries exhausted — server reports success but no internet after 2 retries")
+				mw.statusLabel.SetText("登录异常")
+				mw.connectionLabel.SetText("无法上网")
+				mw.tray.SetLoggedIn(false)
+				mw.tray.SetConnectionStatus(false)
+				mw.tray.ShowBalloon("校园网登录异常", "服务器返回成功但无法上网，请检查网络或联系网管")
+				return
+			}
+		})
+
+		// Do logout + retry in background (avoid blocking UI)
+		go func() {
+			// For zombie sessions or 2nd retry: logout first to clear stale session
+			if alreadyOnline || mw.loginRetryCount > 1 {
+				mw.Synchronize(func() { mw.appendLog(LogInfo, "Logging out to clear stale session...") })
+				gateway := mw.getGateway()
+				netInfo := GetNetworkInfoFast()
+				mw.loginMgr.Logout(gateway, mw.cfg.Username, mw.cfg.Operator, netInfo.LocalIP, netInfo.MAC)
+				mw.Synchronize(func() { mw.appendLog(LogInfo, "Waiting 3 seconds before re-login...") })
+				time.Sleep(3 * time.Second)
+			}
+
+			// Retry login
+			mw.Synchronize(func() { mw.setLoginEnabled(false) })
+			gateway := mw.getGateway()
+			netInfo := GetNetworkInfoFast()
+			result := mw.loginMgr.Login(gateway, mw.cfg.Username, mw.cfg.Operator, mw.sessionPassword, netInfo.LocalIP, netInfo.MAC, netInfo.IPv6)
+			mw.Synchronize(func() {
+				mw.setLoginEnabled(true)
+				if result.Success {
+					mw.onLoginSuccess(result.Engine, result.AlreadyOnline)
+				} else {
+					mw.onLoginFailed(result.Engine, result.Message)
+				}
+			})
+		}()
+	}()
 }
 
 func (mw *MainWindow) onLoginFailed(engine, errMsg string) {
+	mw.loginRetryCount = 0 // reset on explicit failure
 	mw.statusLabel.SetText("登录失败")
 	mw.appendLog(LogError, fmt.Sprintf("Login failed [%s]: %s", engine, errMsg))
 

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os/exec"
 	"strings"
 	"syscall"
@@ -176,6 +177,44 @@ func CheckConnectivity() bool {
 			conn.Close()
 			return true
 		}
+	}
+	return false
+}
+
+// CheckInternetAccess verifies real internet connectivity via HTTP GET.
+// Unlike CheckConnectivity (TCP dial), this actually fetches a page and
+// checks the response status — TCP dial can be hijacked by captive portals
+// and report "success" even when there's no real internet access.
+//
+// Uses a client that follows redirects and checks the FINAL URL — if the
+// request ends up at the captive portal (10.x.x.x), it's NOT real internet.
+func CheckInternetAccess() bool {
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		// Follow redirects but track the final URL
+	}
+
+	for _, url := range []string{"http://www.baidu.com", "https://www.baidu.com"} {
+		resp, err := client.Get(url)
+		if err != nil {
+			continue
+		}
+		resp.Body.Close()
+
+		// Only accept 2xx (NOT 3xx redirects — captive portals return 302)
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			continue
+		}
+
+		// If the final URL is on the captive portal (10.x.x.x or 1.2.3.4),
+		// the request was hijacked — NOT real internet
+		finalHost := resp.Request.URL.Hostname()
+		if strings.HasPrefix(finalHost, "10.") || finalHost == "1.2.3.4" {
+			GetLogger().Debug("CheckInternetAccess: hijacked to %s — no real internet", finalHost)
+			continue
+		}
+
+		return true
 	}
 	return false
 }

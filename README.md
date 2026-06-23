@@ -30,8 +30,6 @@
 
 ![主界面](./docs/screenshots/main.png)
 
-![高级设置](./docs/screenshots/advanced.png)
-
 ---
 
 ## 📥 下载
@@ -39,7 +37,7 @@
 | 渠道 | 链接 | 提取码 |
 |------|------|--------|
 | **GitHub Releases** | [Releases](../../releases) | — |
-| **蓝奏云**（国内高速） | [kurisut1na.lanzouu.com/igrYK3smafrg](https://kurisut1na.lanzouu.com/igrYK3smafrg) | `4y41` |
+| **蓝奏云**（国内高速） | [kurisut1na.lanzouu.com/iYNWb3sr6jaj](https://kurisut1na.lanzouu.com/iYNWb3sr6jaj) | `g5ah` |
 
 下载 `CampusAutoLogin.exe`，放到任意目录，双击运行。
 
