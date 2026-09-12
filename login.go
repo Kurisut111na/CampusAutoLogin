@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -37,6 +38,14 @@ func OperatorToSuffix(op string) string {
 		return suffix
 	}
 	return "@cmcc"
+}
+
+// reCredParam 匹配 URL 中的凭据参数（user_password / upass）及其值。
+var reCredParam = regexp.MustCompile(`(?i)([?&](?:user_password|upass)=)[^&]*`)
+
+// sanitizeURLForLog 将登录 URL 中的凭据替换为 ***，用于安全写日志。
+func sanitizeURLForLog(u string) string {
+	return reCredParam.ReplaceAllString(u, "${1}***")
 }
 
 // ACInfo holds BRAS information extracted from the Portal page.
@@ -282,7 +291,7 @@ func (lm *LoginManager) portalV4Login(gateway, username, operator, password, ip,
 		GetLogger().Info("Using BRAS-provided MAC: %s (local: %s)", effectiveMAC, mac)
 	}
 
-	url := fmt.Sprintf(
+	loginURL := fmt.Sprintf(
 		"http://%s:801/eportal/portal/login?callback=dr1004&login_method=1"+
 			"&user_account=%s"+
 			"&user_password=%s"+
@@ -290,21 +299,23 @@ func (lm *LoginManager) portalV4Login(gateway, username, operator, password, ip,
 			"&wlan_user_mac=%s"+
 			"&wlan_ac_ip=%s"+
 			"&wlan_ac_name=%s",
-		gateway, userAccount, encodedPass, effectiveIP, effectiveMAC, acInfo.IP, acInfo.Name,
+		gateway, url.QueryEscape(userAccount), url.QueryEscape(encodedPass),
+		url.QueryEscape(effectiveIP), url.QueryEscape(effectiveMAC),
+		url.QueryEscape(acInfo.IP), url.QueryEscape(acInfo.Name),
 	)
 
 	// Append areaID if available (required by some Dr.COM deployments for WiFi)
 	if acInfo.AreaID != "" {
-		url += "&wlan_area_id=" + acInfo.AreaID
+		loginURL += "&wlan_area_id=" + url.QueryEscape(acInfo.AreaID)
 		GetLogger().Info("Appending areaID: %s", acInfo.AreaID)
 	}
 
-	url += "&terminal_type=1&jsVersion=4.2&v=8746"
+	loginURL += "&terminal_type=1&jsVersion=4.2&v=8746"
 
 	GetLogger().Info("Portal v4.0 login attempt: %s", gateway)
-	GetLogger().Info("Portal URL: %s", url)
+	GetLogger().Info("Portal URL: %s", sanitizeURLForLog(loginURL))
 
-	resp, err := lm.client.Get(url)
+	resp, err := lm.client.Get(loginURL)
 	if err != nil {
 		return &LoginResult{Success: false, Engine: "portal_v4", Message: fmt.Sprintf("Network error: %v", err)}
 	}
@@ -359,7 +370,7 @@ func (lm *LoginManager) oldAPILogin(gateway, username, operator, password, ip, v
 		effectiveMAC = acInfo.MAC
 	}
 
-	url := fmt.Sprintf(
+	loginURL := fmt.Sprintf(
 		"http://%s:80/drcom/login?callback=dr1004"+
 			"&DDDDD=%s"+
 			"&upass=%s"+
@@ -367,23 +378,24 @@ func (lm *LoginManager) oldAPILogin(gateway, username, operator, password, ip, v
 			"&R1=0&R2=&R3=0&R6=%s&para=00"+
 			"&v4ip=%s"+
 			"&terminal_type=%s&lang=zh-cn&jsVersion=4.2&v=608",
-		gateway, account, password, r6, effectiveIP, termType,
+		gateway, url.QueryEscape(account), url.QueryEscape(password),
+		r6, url.QueryEscape(effectiveIP), termType,
 	)
 
 	// Append v6ip for campus network
 	if operator == "campus" && v6ip != "" {
-		url += "&v6ip=" + v6ip
+		loginURL += "&v6ip=" + url.QueryEscape(v6ip)
 	}
 
 	// Append MAC for old API
 	if effectiveMAC != "" {
-		url += "&v4mac=" + effectiveMAC
+		loginURL += "&v4mac=" + url.QueryEscape(effectiveMAC)
 	}
 
 	GetLogger().Info("Old API login attempt: %s", gateway)
-	GetLogger().Info("Old API URL: %s", url)
+	GetLogger().Info("Old API URL: %s", sanitizeURLForLog(loginURL))
 
-	resp, err := lm.client.Get(url)
+	resp, err := lm.client.Get(loginURL)
 	if err != nil {
 		return &LoginResult{Success: false, Engine: "old_api", Message: fmt.Sprintf("Network error: %v", err)}
 	}
@@ -471,26 +483,27 @@ func (lm *LoginManager) portalV4Logout(gateway, username, operator, ip, mac stri
 		effectiveMAC = acInfo.MAC
 	}
 
-	url := fmt.Sprintf(
+	logoutURL := fmt.Sprintf(
 		"http://%s:801/eportal/portal/logout?callback=dr1004&login_method=1"+
 			"&user_account=%s"+
 			"&wlan_user_ip=%s"+
 			"&wlan_user_mac=%s"+
 			"&wlan_ac_ip=%s"+
 			"&wlan_ac_name=%s",
-		gateway, userAccount, effectiveIP, effectiveMAC, acInfo.IP, acInfo.Name,
+		gateway, url.QueryEscape(userAccount), url.QueryEscape(effectiveIP),
+		url.QueryEscape(effectiveMAC), url.QueryEscape(acInfo.IP), url.QueryEscape(acInfo.Name),
 	)
 
 	// Append areaID if available
 	if acInfo.AreaID != "" {
-		url += "&wlan_area_id=" + acInfo.AreaID
+		logoutURL += "&wlan_area_id=" + url.QueryEscape(acInfo.AreaID)
 	}
 
-	url += "&terminal_type=1&jsVersion=4.2&v=8746"
+	logoutURL += "&terminal_type=1&jsVersion=4.2&v=8746"
 
 	GetLogger().Info("Portal v4.0 logout: %s", gateway)
 
-	resp, err := lm.client.Get(url)
+	resp, err := lm.client.Get(logoutURL)
 	if err != nil {
 		GetLogger().Warn("Portal v4.0 logout network error: %v", err)
 		return false
@@ -515,18 +528,18 @@ func (lm *LoginManager) oldAPILogout(gateway, username, operator, ip, mac string
 		effectiveMAC = acInfo.MAC
 	}
 
-	url := fmt.Sprintf(
+	logoutURL := fmt.Sprintf(
 		"http://%s:80/drcom/logout?callback=dr1004"+
 			"&DDDDD=%s"+
 			"&v4ip=%s"+
 			"&v4mac=%s"+
 			"&lang=zh-cn",
-		gateway, account, effectiveIP, effectiveMAC,
+		gateway, url.QueryEscape(account), url.QueryEscape(effectiveIP), url.QueryEscape(effectiveMAC),
 	)
 
 	GetLogger().Info("Old API logout: %s", gateway)
 
-	resp, err := lm.client.Get(url)
+	resp, err := lm.client.Get(logoutURL)
 	if err != nil {
 		GetLogger().Warn("Old API logout network error: %v", err)
 		return false

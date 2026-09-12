@@ -34,7 +34,8 @@ import (
 const AppVersion = "0.2.0"
 
 // VersionCheckURL is the raw GitHub URL for the version manifest.
-const VersionCheckURL = "https://raw.githubusercontent.com/Kurisut111na/CampusAutoLogin/main/version.json"
+// 注意：必须与仓库默认分支一致（master）——分支名写错会让更新检查静默 404。
+const VersionCheckURL = "https://raw.githubusercontent.com/Kurisut111na/CampusAutoLogin/master/version.json"
 
 type versionManifest struct {
 	Latest      string `json:"latest"`
@@ -88,11 +89,14 @@ func CheckVersionSync() bool {
 
 // ShowUpdateNotification shows an optional update dialog if a new version
 // is available. Call this after the main window has been created.
+// 可从任意 goroutine 调用——弹窗动作被同步回 UI 线程。
 func ShowUpdateNotification(owner walk.Form) {
 	if cachedManifest == nil {
 		return
 	}
-	showUpdateAvailable(owner, cachedManifest)
+	owner.Synchronize(func() {
+		showUpdateAvailable(owner, cachedManifest)
+	})
 }
 
 // =============================================================================

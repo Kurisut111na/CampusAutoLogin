@@ -28,13 +28,6 @@ func main() {
 	}
 	GetLogger().Info("CampusAutoLogin v%s starting", AppVersion)
 
-	// Check for updates before creating the window.
-	// If force-update is required, this shows a dialog and returns true.
-	if CheckVersionSync() {
-		GetLogger().Close()
-		os.Exit(0)
-	}
-
 	configMgr, err := NewConfigManager()
 	if err != nil {
 		GetLogger().Error("Failed to create config manager: %v", err)
@@ -62,8 +55,16 @@ func main() {
 	mainWin.tray = tray
 	mainWin.setupCallbacks()
 
-	// Show optional update notification (non-blocking — user can ignore)
-	ShowUpdateNotification(mainWin)
+	// Version check moved to background: this tool starts when the campus
+	// network is NOT yet authenticated, so a synchronous 5s check delayed
+	// every cold start. Force-update still exits via os.Exit after the dialog.
+	go func() {
+		if CheckVersionSync() {
+			GetLogger().Close()
+			os.Exit(0)
+		}
+		ShowUpdateNotification(mainWin)
+	}()
 
 	// Only minimize when auto-started via registry (--silent flag),
 	// not when user double-clicks manually.
