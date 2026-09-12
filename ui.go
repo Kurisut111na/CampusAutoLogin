@@ -494,12 +494,16 @@ func (mw *MainWindow) saveConfigFromUI() {
 		mw.sessionPassword = mw.passwordEdit.Text()
 	}
 
-	// Debounce save (500ms)
+	// Debounce save (500ms)。
+	// cfg 浅拷贝必须在 UI 线程完成：AfterFunc 回调跑在独立 goroutine，
+	// 若直接传 mw.cfg 会与 UI 线程的字段写入构成数据竞争。
+	// PingURLs 只被整体替换从不原地修改，浅拷贝共享底层数组是安全的。
 	if mw.saveTimer != nil {
 		mw.saveTimer.Stop()
 	}
+	cfgCopy := *mw.cfg
 	mw.saveTimer = time.AfterFunc(500*time.Millisecond, func() {
-		if err := mw.configMgr.SaveConfig(mw.cfg); err != nil {
+		if err := mw.configMgr.SaveConfig(&cfgCopy); err != nil {
 			GetLogger().Error("Failed to save config: %v", err)
 		}
 	})

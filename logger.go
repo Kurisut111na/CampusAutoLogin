@@ -52,6 +52,9 @@ type Logger struct {
 
 var logger *Logger
 
+// loggerOnce 保证懒初始化只执行一次且并发安全（原实现的双检锁有 data race）。
+var loggerOnce sync.Once
+
 // InitLogger creates the log directory and opens the current log file.
 func InitLogger(minLevel LogLevel) error {
 	localAppData, err := os.UserCacheDir()
@@ -95,11 +98,18 @@ func InitLogger(minLevel LogLevel) error {
 }
 
 // GetLogger returns the global logger instance.
+// 永不返回 nil：InitLogger 失败（如磁盘/目录问题）时退化为 stderr 输出，
+// 避免调用方在 nil receiver 上解引用 panic。
 func GetLogger() *Logger {
-	if logger == nil {
-		// Fallback: create a minimal stderr logger
-		_ = InitLogger(LogDebug)
-	}
+	loggerOnce.Do(func() {
+		if err := InitLogger(LogInfo); err != nil {
+			logger = &Logger{
+				minLevel:  LogInfo,
+				recent:    make([]LogEntry, 0, 200),
+				maxRecent: 200,
+			}
+		}
+	})
 	return logger
 }
 
@@ -118,7 +128,7 @@ func (l *Logger) log(level LogLevel, format string, args ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	// Write to file
+	// Write to file；file 为 nil（InitLogger 失败的降级 logger）时输出到 stderr
 	line := fmt.Sprintf("[%s] [%s] %s\n",
 		entry.Timestamp.Format("2006-01-02 15:04:05.000"),
 		entry.Level.String(),
@@ -127,6 +137,8 @@ func (l *Logger) log(level LogLevel, format string, args ...interface{}) {
 	if l.file != nil {
 		l.file.WriteString(line)
 		l.file.Sync()
+	} else {
+		fmt.Fprint(os.Stderr, line)
 	}
 
 	// Store recent
