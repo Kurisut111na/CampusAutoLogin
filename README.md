@@ -152,7 +152,7 @@ A: 删除 `%LOCALAPPDATA%\CampusAutoLogin\` 整个目录。
 ## 🔧 从源码构建
 
 ```bash
-# 前提：Go 1.21+、MinGW-w64 (walk 需要 CGO)
+# 前提：Go 1.21+（walk 为纯 syscall 实现，无需 CGO / MinGW）
 
 git clone https://github.com/Kurisut111na/CampusAutoLogin.git
 cd CampusAutoLogin
@@ -163,6 +163,12 @@ go build -ldflags="-s -w -H windowsgui" -o CampusAutoLogin.exe .
 # 开发构建（保留控制台输出，方便调试）
 go build -o CampusAutoLogin.exe .
 ```
+
+> ⚠️ **vendor 目录含两处本地补丁，请勿重新 `go mod vendor`：**
+> 1. `vendor/github.com/lxn/walk/window.go:554` — `InitCommonControlsEx` flags 补齐 `ICC_BAR_CLASSES | ICC_WIN95_CLASSES`
+> 2. `vendor/github.com/lxn/walk/tooltip.go:183` — `TTM_ADDTOOL` 失败时 `return nil` 而非中断窗口创建
+>
+> 丢失任一补丁的症状：双击 exe 无反应/闪退（ToolTip 创建崩溃）。详见开发日志 Bug #1-#3。
 
 ---
 
