@@ -19,3 +19,7 @@
 Desktop.ini
 Thumbs.db
 .DS_Store
+.gle/
+
+# 本地开发文档（不上传）
+登录/
