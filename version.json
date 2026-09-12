@@ -1,6 +1,6 @@
 {
-  "latest": "0.2.0",
+  "latest": "0.2.1",
   "min": "0.1.0",
   "download": "https://kurisut1na.lanzouu.com/iYNWb3sr6jaj",
-  "release_note": "修复Portal v4.0 AC认证失败 + 僵尸会话自动重试  提取码: g5ah"
+  "release_note": "修复版本检查、密码不再写入日志、登录参数标准转义、启动提速。提取码: g5ah"
 }

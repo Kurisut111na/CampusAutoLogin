@@ -31,7 +31,7 @@ import (
 //	}
 
 // AppVersion is the current version — bump this every release.
-const AppVersion = "0.2.0"
+const AppVersion = "0.2.1"
 
 // VersionCheckURL is the raw GitHub URL for the version manifest.
 // 注意：必须与仓库默认分支一致（master）——分支名写错会让更新检查静默 404。
