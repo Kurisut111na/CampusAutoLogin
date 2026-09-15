@@ -9,6 +9,7 @@ import (
 	_ "image/png"
 	"net/http"
 	"os/exec"
+	"sync/atomic"
 	"time"
 
 	"github.com/lxn/walk"
@@ -67,7 +68,9 @@ type MainWindow struct {
 	passwordVisible     bool
 	reconnectOnCooldown bool
 	loading             bool
-	loginRetryCount     int // retry counter for login-with-verify loop (max 2)
+	loginRetryCount     atomic.Int32 // retry counter for login-with-verify loop (max 2)
+	// 用 atomic：walk 的 Synchronize 是异步入队、不阻塞，计数器的增减与
+	// 判定分散在 UI 线程和后台 goroutine，普通 int 会构成数据竞争。
 
 	// --- Timers ---
 	reconnectCooldown *time.Timer
@@ -505,6 +508,19 @@ func (mw *MainWindow) saveConfigFromUI() {
 	})
 }
 
+// FlushConfigSave 立即同步落盘，用于退出路径。
+// saveConfigFromUI 只是挂一个 500ms 防抖定时器，进程若在定时器触发前退出，
+// 最后一次修改会丢失。退出时必须先 Stop 定时器再同步保存。
+func (mw *MainWindow) FlushConfigSave() {
+	if mw.saveTimer != nil {
+		mw.saveTimer.Stop()
+		mw.saveTimer = nil
+	}
+	if err := mw.configMgr.SaveConfig(mw.cfg); err != nil {
+		GetLogger().Error("Failed to flush config on exit: %v", err)
+	}
+}
+
 func (mw *MainWindow) updateStatusDisplay() {
 	netInfo := GetNetworkInfoFast()
 
@@ -550,7 +566,7 @@ func (mw *MainWindow) updateStatusDisplay() {
 
 func (mw *MainWindow) onLoginClicked() {
 	mw.saveConfigFromUI()
-	mw.loginRetryCount = 0 // reset retry counter on manual login
+	mw.loginRetryCount.Store(0) // reset retry counter on manual login
 
 	username := mw.usernameEdit.Text()
 	password := mw.passwordEdit.Text()
@@ -686,10 +702,14 @@ func (mw *MainWindow) onLoginSuccess(engine string, alreadyOnline bool) {
 		if CheckInternetAccess() {
 			// Real internet confirmed — finalize success
 			mw.Synchronize(func() {
-				mw.loginRetryCount = 0 // reset retry counter
+				mw.loginRetryCount.Store(0) // reset retry counter
 				mw.statusLabel.SetText(fmt.Sprintf("已登录 (%s)", engine))
 				mw.connectionLabel.SetText("已连接")
-				mw.lastLoginLabel.SetText(time.Now().Format("2006-01-02 15:04:05"))
+
+				// 只有真实登录成功才刷新“上次登录”时间
+				now := time.Now().Format("2006-01-02 15:04:05")
+				mw.cfg.LastLoginTime = now
+				mw.lastLoginLabel.SetText(now)
 
 				mw.tray.SetLoggedIn(true)
 				mw.tray.SetConnectionStatus(true)
@@ -711,31 +731,37 @@ func (mw *MainWindow) onLoginSuccess(engine string, alreadyOnline bool) {
 			return
 		}
 
-		// Server said success but NO real internet access
-		mw.Synchronize(func() {
-			mw.loginRetryCount++
-			if mw.loginRetryCount <= 2 {
-				if alreadyOnline {
-					mw.appendLog(LogWarning, "Already online but no internet — zombie session detected, logging out before retry...")
-				} else {
-					mw.appendLog(LogWarning, fmt.Sprintf("Login reported success but no internet — retrying (%d/2)...", mw.loginRetryCount))
-				}
-			} else {
-				mw.loginRetryCount = 0 // reset
+		// Server said success but NO real internet access.
+		// 注意：walk 的 Synchronize 是异步入队（不阻塞），因此计数判定必须在
+		// 本 goroutine 内用 atomic 完成，不能依赖 Synchronize 闭包里的局部变量。
+		attempt := int(mw.loginRetryCount.Add(1))
+		if attempt > 2 {
+			// 重试耗尽：立即终止本次重试链，否则会无限循环
+			mw.loginRetryCount.Store(0)
+			mw.Synchronize(func() {
 				mw.appendLog(LogError, "Login retries exhausted — server reports success but no internet after 2 retries")
 				mw.statusLabel.SetText("登录异常")
 				mw.connectionLabel.SetText("无法上网")
 				mw.tray.SetLoggedIn(false)
 				mw.tray.SetConnectionStatus(false)
 				mw.tray.ShowBalloon("校园网登录异常", "服务器返回成功但无法上网，请检查网络或联系网管")
-				return
+			})
+			return
+		}
+
+		needLogout := alreadyOnline || attempt > 1
+		mw.Synchronize(func() {
+			if alreadyOnline {
+				mw.appendLog(LogWarning, "Already online but no internet — zombie session detected, logging out before retry...")
+			} else {
+				mw.appendLog(LogWarning, fmt.Sprintf("Login reported success but no internet — retrying (%d/2)...", attempt))
 			}
 		})
 
 		// Do logout + retry in background (avoid blocking UI)
 		go func() {
 			// For zombie sessions or 2nd retry: logout first to clear stale session
-			if alreadyOnline || mw.loginRetryCount > 1 {
+			if needLogout {
 				mw.Synchronize(func() { mw.appendLog(LogInfo, "Logging out to clear stale session...") })
 				gateway := mw.getGateway()
 				netInfo := GetNetworkInfoFast()
@@ -762,7 +788,7 @@ func (mw *MainWindow) onLoginSuccess(engine string, alreadyOnline bool) {
 }
 
 func (mw *MainWindow) onLoginFailed(engine, errMsg string) {
-	mw.loginRetryCount = 0 // reset on explicit failure
+	mw.loginRetryCount.Store(0) // reset on explicit failure
 	mw.statusLabel.SetText("登录失败")
 	mw.appendLog(LogError, fmt.Sprintf("Login failed [%s]: %s", engine, errMsg))
 
@@ -1093,6 +1119,7 @@ func (mw *MainWindow) setupCallbacks() {
 	mw.tray.OnQuit(func() {
 		mw.Synchronize(func() {
 			mw.saveConfigFromUI()
+			mw.FlushConfigSave() // Exit(0) 会立即终止进程，必须先同步落盘
 			mw.heartbeat.Stop()
 			GetLogger().Close()
 			walk.App().Exit(0)

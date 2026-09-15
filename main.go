@@ -82,6 +82,7 @@ func main() {
 
 	GetLogger().Info("Application exiting")
 	mainWin.saveConfigFromUI()
+	mainWin.FlushConfigSave() // 防抖定时器可能尚未触发，退出前同步落盘
 	heartbeat.Stop()
 	GetLogger().Close()
 }

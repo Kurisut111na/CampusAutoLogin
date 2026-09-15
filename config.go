@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"sync"
 	"syscall"
-	"time"
 	"unsafe"
 )
 
@@ -192,9 +191,11 @@ func (cm *ConfigManager) LoadConfig() *AppConfig {
 	if cfg.Password != "" {
 		plain, err := unprotectPassword(cfg.Password)
 		if err != nil {
-			GetLogger().Warn("Failed to decrypt password (different user/machine?): %v", err)
-			// Don't clear the ciphertext — it might be valid on a different login
-			// Just don't set the plain password
+			// DPAPI 绑定当前用户 + 当前机器，此处失败即表示配置来自其他环境
+			// （换用户/换机器/重装系统），本机无法恢复。必须清空：
+			// 否则密文会填入密码框，用户下次保存时被再加密一层，永久损坏。
+			GetLogger().Warn("Failed to decrypt password (different user/machine?) — clearing it; please re-enter: %v", err)
+			cfg.Password = ""
 		} else {
 			cfg.Password = plain
 		}
@@ -213,8 +214,6 @@ func (cm *ConfigManager) SaveConfig(cfg *AppConfig) error {
 	if !cfg.RememberPassword || cfg.Password == "" {
 		saveCfg.Password = ""
 	} else {
-		// Check if password is already encrypted (base64 + DPAPI blob)
-		// If it's plain text, encrypt it
 		encrypted, err := protectPassword(cfg.Password)
 		if err != nil {
 			return fmt.Errorf("encrypt password: %w", err)
@@ -232,7 +231,8 @@ func (cm *ConfigManager) SaveConfig(cfg *AppConfig) error {
 		saveCfg.PingURLs = []string{"https://www.baidu.com", "https://www.bing.com"}
 	}
 
-	saveCfg.LastLoginTime = time.Now().Format("2006-01-02 15:04:05")
+	// LastLoginTime 由登录成功路径（ui.go onLoginSuccess）写入，
+	// 此处不再覆盖——否则每次改设置都会刷新“上次登录”时间。
 
 	data, err := json.MarshalIndent(saveCfg, "", "  ")
 	if err != nil {
