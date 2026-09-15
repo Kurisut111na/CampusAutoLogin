@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -47,6 +46,12 @@ var reCredParam = regexp.MustCompile(`(?i)([?&](?:user_password|upass)=)[^&]*`)
 func sanitizeURLForLog(u string) string {
 	return reCredParam.ReplaceAllString(u, "${1}***")
 }
+
+// 注意：登录/登出 URL 的参数故意不做 URL 转义（url.QueryEscape）。
+// 上游 Dr.COM JS 客户端按原始字符串发送 base64 密码与账号（含 ",0," 前缀、
+// "@运营商" 后缀），转义会改变 base64 的 "+" "/" "=" 字节，以及账号的 "," "@"。
+// 服务端是否执行标准 query 解码（"+" → 空格）尚未实测确认：若不解码，
+// 转义将导致全部登录失败。待 F12 抓包比对浏览器实际请求后再决定是否转义。
 
 // ACInfo holds BRAS information extracted from the Portal page.
 type ACInfo struct {
@@ -299,14 +304,13 @@ func (lm *LoginManager) portalV4Login(gateway, username, operator, password, ip,
 			"&wlan_user_mac=%s"+
 			"&wlan_ac_ip=%s"+
 			"&wlan_ac_name=%s",
-		gateway, url.QueryEscape(userAccount), url.QueryEscape(encodedPass),
-		url.QueryEscape(effectiveIP), url.QueryEscape(effectiveMAC),
-		url.QueryEscape(acInfo.IP), url.QueryEscape(acInfo.Name),
+		gateway, userAccount, encodedPass,
+		effectiveIP, effectiveMAC, acInfo.IP, acInfo.Name,
 	)
 
 	// Append areaID if available (required by some Dr.COM deployments for WiFi)
 	if acInfo.AreaID != "" {
-		loginURL += "&wlan_area_id=" + url.QueryEscape(acInfo.AreaID)
+		loginURL += "&wlan_area_id=" + acInfo.AreaID
 		GetLogger().Info("Appending areaID: %s", acInfo.AreaID)
 	}
 
@@ -378,18 +382,18 @@ func (lm *LoginManager) oldAPILogin(gateway, username, operator, password, ip, v
 			"&R1=0&R2=&R3=0&R6=%s&para=00"+
 			"&v4ip=%s"+
 			"&terminal_type=%s&lang=zh-cn&jsVersion=4.2&v=608",
-		gateway, url.QueryEscape(account), url.QueryEscape(password),
-		r6, url.QueryEscape(effectiveIP), termType,
+		gateway, account, password,
+		r6, effectiveIP, termType,
 	)
 
 	// Append v6ip for campus network
 	if operator == "campus" && v6ip != "" {
-		loginURL += "&v6ip=" + url.QueryEscape(v6ip)
+		loginURL += "&v6ip=" + v6ip
 	}
 
 	// Append MAC for old API
 	if effectiveMAC != "" {
-		loginURL += "&v4mac=" + url.QueryEscape(effectiveMAC)
+		loginURL += "&v4mac=" + effectiveMAC
 	}
 
 	GetLogger().Info("Old API login attempt: %s", gateway)
@@ -490,13 +494,13 @@ func (lm *LoginManager) portalV4Logout(gateway, username, operator, ip, mac stri
 			"&wlan_user_mac=%s"+
 			"&wlan_ac_ip=%s"+
 			"&wlan_ac_name=%s",
-		gateway, url.QueryEscape(userAccount), url.QueryEscape(effectiveIP),
-		url.QueryEscape(effectiveMAC), url.QueryEscape(acInfo.IP), url.QueryEscape(acInfo.Name),
+		gateway, userAccount, effectiveIP,
+		effectiveMAC, acInfo.IP, acInfo.Name,
 	)
 
 	// Append areaID if available
 	if acInfo.AreaID != "" {
-		logoutURL += "&wlan_area_id=" + url.QueryEscape(acInfo.AreaID)
+		logoutURL += "&wlan_area_id=" + acInfo.AreaID
 	}
 
 	logoutURL += "&terminal_type=1&jsVersion=4.2&v=8746"
@@ -534,7 +538,7 @@ func (lm *LoginManager) oldAPILogout(gateway, username, operator, ip, mac string
 			"&v4ip=%s"+
 			"&v4mac=%s"+
 			"&lang=zh-cn",
-		gateway, url.QueryEscape(account), url.QueryEscape(effectiveIP), url.QueryEscape(effectiveMAC),
+		gateway, account, effectiveIP, effectiveMAC,
 	)
 
 	GetLogger().Info("Old API logout: %s", gateway)
