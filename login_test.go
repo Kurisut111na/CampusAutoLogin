@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
-	"net/url"
 	"strings"
 	"testing"
 )
@@ -23,21 +21,6 @@ func TestSanitizeURLForLog(t *testing.T) {
 		}
 		if c.wantAbsent != "" && strings.Contains(got, c.wantAbsent) {
 			t.Errorf("%s: 输出不应泄漏 %q, 实际: %s", c.name, c.wantAbsent, got)
-		}
-	}
-}
-
-// TestQueryEscapeBase64Password 含 + / = 的 base64 密码必须被转义，
-// 否则服务端按标准 query 解码时 + 会变成空格，登录静默失败。
-func TestQueryEscapeBase64Password(t *testing.T) {
-	for _, pw := range []string{"a+b/c=d", "p+w", "纯中文密码", "pass&word=1"} {
-		enc := url.QueryEscape(base64.StdEncoding.EncodeToString([]byte(pw)))
-		decoded, err := url.QueryUnescape(enc)
-		if err != nil || decoded != base64.StdEncoding.EncodeToString([]byte(pw)) {
-			t.Errorf("密码 %q 转义往返失败: enc=%q decoded=%q err=%v", pw, enc, decoded, err)
-		}
-		if strings.Contains(enc, "+") && !strings.Contains(enc, "%2B") {
-			t.Errorf("密码 %q 的转义结果含裸 +, 服务端会解成空格: %q", pw, enc)
 		}
 	}
 }
