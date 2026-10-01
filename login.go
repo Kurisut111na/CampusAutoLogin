@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -47,11 +48,16 @@ func sanitizeURLForLog(u string) string {
 	return reCredParam.ReplaceAllString(u, "${1}***")
 }
 
-// 注意：登录/登出 URL 的参数故意不做 URL 转义（url.QueryEscape）。
-// 上游 Dr.COM JS 客户端按原始字符串发送 base64 密码与账号（含 ",0," 前缀、
-// "@运营商" 后缀），转义会改变 base64 的 "+" "/" "=" 字节，以及账号的 "," "@"。
-// 服务端是否执行标准 query 解码（"+" → 空格）尚未实测确认：若不解码，
-// 转义将导致全部登录失败。待 F12 抓包比对浏览器实际请求后再决定是否转义。
+// URL 转义采用不对称策略（2026-10-01 按 Portal 前端源码 + 实机登录实证确定）：
+//   - Portal v4.0（801, eportal 后端）：所有参数值 QueryEscape。
+//     依据：Portal 页面框架 JS 的 util._jsonp/formatParams 对全部参数做
+//     encodeURIComponent（含账号 ",0," "@"、base64 "+/="），浏览器以编码值
+//     登录成功 ⇒ eportal 按标准 query 解码。不转义时 base64 的 "+" 会被
+//     服务端解成空格 → 特殊字符密码静默失败。
+//   - 旧 API（80, Dr.COM 内核）：保持原始值不转义。2026-10-01 桂电有线实机
+//     验证裸账号/裸明文密码登录成功，且无浏览器行为可参照，不动已验证路径。
+//   - 注：部分学校明确不支持密码含 '&'（见服务端 AC认证失败 报错文案），
+//     属 AC 侧限制，浏览器同样无法绕过。
 
 // ACInfo holds BRAS information extracted from the Portal page.
 type ACInfo struct {
@@ -304,13 +310,14 @@ func (lm *LoginManager) portalV4Login(gateway, username, operator, password, ip,
 			"&wlan_user_mac=%s"+
 			"&wlan_ac_ip=%s"+
 			"&wlan_ac_name=%s",
-		gateway, userAccount, encodedPass,
-		effectiveIP, effectiveMAC, acInfo.IP, acInfo.Name,
+		gateway, url.QueryEscape(userAccount), url.QueryEscape(encodedPass),
+		url.QueryEscape(effectiveIP), url.QueryEscape(effectiveMAC),
+		url.QueryEscape(acInfo.IP), url.QueryEscape(acInfo.Name),
 	)
 
 	// Append areaID if available (required by some Dr.COM deployments for WiFi)
 	if acInfo.AreaID != "" {
-		loginURL += "&wlan_area_id=" + acInfo.AreaID
+		loginURL += "&wlan_area_id=" + url.QueryEscape(acInfo.AreaID)
 		GetLogger().Info("Appending areaID: %s", acInfo.AreaID)
 	}
 
@@ -494,13 +501,13 @@ func (lm *LoginManager) portalV4Logout(gateway, username, operator, ip, mac stri
 			"&wlan_user_mac=%s"+
 			"&wlan_ac_ip=%s"+
 			"&wlan_ac_name=%s",
-		gateway, userAccount, effectiveIP,
-		effectiveMAC, acInfo.IP, acInfo.Name,
+		gateway, url.QueryEscape(userAccount), url.QueryEscape(effectiveIP),
+		url.QueryEscape(effectiveMAC), url.QueryEscape(acInfo.IP), url.QueryEscape(acInfo.Name),
 	)
 
 	// Append areaID if available
 	if acInfo.AreaID != "" {
-		logoutURL += "&wlan_area_id=" + acInfo.AreaID
+		logoutURL += "&wlan_area_id=" + url.QueryEscape(acInfo.AreaID)
 	}
 
 	logoutURL += "&terminal_type=1&jsVersion=4.2&v=8746"
