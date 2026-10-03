@@ -955,8 +955,17 @@ func (mw *MainWindow) showAdvancedDialog() {
 	// ==========================================================================
 	logGroup, _ := walk.NewGroupBox(dlg)
 	logGroup.SetLayout(walk.NewVBoxLayout())
-	logDirLabel, _ := walk.NewLabel(logGroup)
+	logRow, _ := walk.NewComposite(logGroup)
+	logRow.SetLayout(walk.NewHBoxLayout())
+	logDirLabel, _ := walk.NewLabel(logRow)
 	logDirLabel.SetText(fmt.Sprintf("日志目录: %s", GetLogger().LogDir()))
+	// 路径是死文本，托盘菜单的「打开日志目录」又难被发现——补个显式按钮
+	openLogBtn, _ := walk.NewPushButton(logRow)
+	openLogBtn.SetText("打开")
+	openLogBtn.SetMinMaxSize(walk.Size{Width: 52, Height: 24}, walk.Size{Width: 52, Height: 24})
+	openLogBtn.Clicked().Attach(func() {
+		exec.Command("explorer", GetLogger().LogDir()).Start()
+	})
 
 	// ==========================================================================
 	// Support / Donation Section
