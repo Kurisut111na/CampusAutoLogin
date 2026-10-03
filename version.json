@@ -1,6 +1,6 @@
 {
-  "latest": "0.2.0",
+  "latest": "0.2.1",
   "min": "0.1.0",
-  "download": "https://kurisut1na.lanzouu.com/iYNWb3sr6jaj",
-  "release_note": "修复Portal v4.0 AC认证失败 + 僵尸会话自动重试  提取码: g5ah"
+  "download": "https://kurisut1na.lanzoum.com/ibguJ4aqkoyj",
+  "release_note": "修复版本检查失效、密码日志泄漏、配置丢失等 9 个问题，新增日志目录打开按钮。提取码: 6tb8"
 }
