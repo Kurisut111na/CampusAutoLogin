@@ -19,6 +19,7 @@ var iconAssets embed.FS
 // TrayIcon manages the system tray notification area icon.
 type TrayIcon struct {
 	ni            *walk.NotifyIcon
+	form          walk.Form // 持有宿主窗口：任务栏/标题栏/Alt-Tab 图标需与托盘状态同步
 	iconConnected *walk.Icon
 	iconLoggedIn  *walk.Icon
 	iconLost      *walk.Icon
@@ -62,6 +63,13 @@ func NewTrayIcon(form walk.Form) (*TrayIcon, error) {
 
 	ni.SetToolTip("Campus Auto Login")
 	ni.SetIcon(ti.iconLoggedIn) // start with blue (logged in state default)
+
+	// 窗口图标（标题栏/任务栏/Alt-Tab）此前从未设置，一直显示 Windows 默认图案；
+	// 与托盘共用同一套三色图标，后续状态变化经 updateIcon 同步
+	ti.form = form
+	if err := form.SetIcon(ti.iconLoggedIn); err != nil {
+		GetLogger().Warn("Set form icon failed: %v", err)
+	}
 
 	// Build the context menu
 	ti.buildMenu()
@@ -117,6 +125,11 @@ func (ti *TrayIcon) updateIcon() {
 		icon = ti.iconConnected
 	}
 	ti.ni.SetIcon(icon)
+
+	// 窗口图标随托盘状态同步（登录/断线变色）
+	if ti.form != nil {
+		ti.form.SetIcon(icon)
+	}
 
 	if ti.connected && ti.loggedIn {
 		ti.ni.SetToolTip("Campus Auto Login — Connected")
